@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2f6f5e">
+  <meta name="description" content="本地待办、番茄钟和便签应用">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="今日专注">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <title>今日专注</title>
+  <style>
+    :root {
+      --page-bg: #f3f7f4;
+      --panel-bg: #ffffff;
+      --text-main: #203029;
+      --text-muted: #68776f;
+      --border: #d9e3dc;
+      --accent: #2f6f5e;
+      --accent-dark: #245748;
+      --accent-soft: #e4f0eb;
+      --warm: #c96342;
+      --warm-soft: #f8e9e3;
+      --ring-track: #e7eee9;
+      --shadow: 0 12px 30px rgba(37, 64, 52, 0.08);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text-main);
+      background:
+        linear-gradient(rgba(47, 111, 94, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(47, 111, 94, 0.035) 1px, transparent 1px),
+        var(--page-bg);
+      background-size: 28px 28px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei",
+        "PingFang SC", sans-serif;
+      line-height: 1.5;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid rgba(47, 111, 94, 0.25);
+      outline-offset: 2px;
+    }
+
+    .app-shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: max(32px, env(safe-area-inset-top, 0px)) 0
+        max(24px, env(safe-area-inset-bottom, 0px));
+    }
+
+    .app-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 6px;
+      font-size: clamp(2rem, 5vw, 3.35rem);
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+    }
+
+    .app-description {
+      margin-bottom: 0;
+      color: var(--text-muted);
+    }
+
+    .today-date {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.75);
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      gap: 18px;
+    }
+
+    .panel {
+      min-width: 0;
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel-bg);
+      box-shadow: var(--shadow);
+    }
+
+    .note-panel {
+      grid-column: 1 / -1;
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .panel-heading h2 {
+      margin-bottom: 0;
+      font-size: 1.22rem;
+    }
+
+    .panel-hint {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+    }
+
+    .todo-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .text-input,
+    .note-area {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-main);
+      background: #fbfdfb;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .text-input {
+      min-height: 44px;
+      padding: 10px 12px;
+    }
+
+    .note-area {
+      min-height: 180px;
+      padding: 13px 14px;
+      resize: vertical;
+    }
+
+    .text-input:hover,
+    .note-area:hover {
+      border-color: #bdcbc2;
+    }
+
+    .text-input:focus,
+    .note-area:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(47, 111, 94, 0.1);
+    }
+
+    .primary-button,
+    .secondary-button,
+    .danger-button,
+    .mode-button,
+    .delete-button {
+      min-height: 42px;
+      border-radius: var(--radius);
+      font-weight: 700;
+      transition: transform 140ms ease, background-color 140ms ease,
+        color 140ms ease, border-color 140ms ease;
+    }
+
+    .primary-button:active,
+    .secondary-button:active,
+    .danger-button:active,
+    .mode-button:active,
+    .delete-button:active {
+      transform: translateY(1px);
+    }
+
+    .primary-button {
+      padding: 0 18px;
+      color: #ffffff;
+      background: var(--accent);
+    }
+
+    .primary-button:hover {
+      background: var(--accent-dark);
+    }
+
+    .secondary-button {
+      padding: 0 16px;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      background: #ffffff;
+    }
+
+    .secondary-button:hover {
+      border-color: #b9c8bf;
+      background: #f7faf8;
+    }
+
+    .danger-button {
+      padding: 0 12px;
+      color: var(--warm);
+      background: transparent;
+    }
+
+    .danger-button:hover:not(:disabled) {
+      background: var(--warm-soft);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .list-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 36px;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+    }
+
+    .todo-list {
+      display: grid;
+      gap: 9px;
+      max-height: 390px;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      list-style: none;
+    }
+
+    .todo-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fbfdfb;
+    }
+
+    .todo-item.is-complete {
+      background: #f6f8f6;
+    }
+
+    .todo-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      cursor: pointer;
+    }
+
+    .todo-checkbox {
+      width: 19px;
+      height: 19px;
+      margin: 0;
+      flex: 0 0 auto;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .todo-text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .todo-item.is-complete .todo-text {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .delete-button {
+      min-height: 34px;
+      padding: 0 10px;
+      color: var(--warm);
+      background: transparent;
+      font-size: 0.82rem;
+    }
+
+    .delete-button:hover {
+      background: var(--warm-soft);
+    }
+
+    .empty-state {
+      padding: 30px 16px;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--text-muted);
+      text-align: center;
+      background: #fbfdfb;
+    }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 22px;
+      padding: 4px;
+      border-radius: var(--radius);
+      background: #eef4f0;
+    }
+
+    .mode-button {
+      min-height: 38px;
+      padding: 0 10px;
+      color: var(--text-muted);
+      background: transparent;
+      font-size: 0.88rem;
+    }
+
+    .mode-button[aria-pressed="true"] {
+      color: var(--accent-dark);
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(37, 64, 52, 0.08);
+    }
+
+    .timer-ring {
+      --progress-angle: 0deg;
+      display: grid;
+      width: min(230px, 66vw);
+      aspect-ratio: 1;
+      margin: 0 auto 22px;
+      place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(
+        var(--accent) var(--progress-angle),
+        var(--ring-track) var(--progress-angle)
+      );
+      transition: background 300ms linear;
+    }
+
+    .timer-ring-inner {
+      display: grid;
+      width: calc(100% - 18px);
+      aspect-ratio: 1;
+      place-content: center;
+      border-radius: 50%;
+      background: var(--panel-bg);
+      text-align: center;
+    }
+
+    .timer-time {
+      display: block;
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(2.8rem, 9vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.05em;
+    }
+
+    .timer-label {
+      display: block;
+      margin-top: 8px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .timer-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    .timer-status {
+      min-height: 24px;
+      margin: 14px 0 0;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+      text-align: center;
+    }
+
+    .note-area {
+      display: block;
+    }
+
+    .note-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 9px;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+    }
+
+    .app-footer {
+      margin: 18px 0 0;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 760px) {
+      .app-shell {
+        width: min(100% - 20px, 620px);
+        padding-top: max(20px, env(safe-area-inset-top, 0px));
+      }
+
+      .app-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .app-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .note-panel {
+        grid-column: auto;
+      }
+
+      .panel {
+        padding: 17px;
+      }
+
+      .todo-form {
+        grid-template-columns: 1fr;
+      }
+
+      .primary-button {
+        width: 100%;
+      }
+
+      .timer-actions {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Local Focus Tool</p>
+        <h1>今日专注</h1>
+        <p class="app-description">把任务写下来，把注意力留在当下。</p>
+      </div>
+      <div class="today-date" id="todayDate" aria-label="今天的日期"></div>
+    </header>
+
+    <div class="app-grid">
+      <section class="panel todo-panel" aria-labelledby="todoHeading">
+        <div class="panel-heading">
+          <h2 id="todoHeading">待办清单</h2>
+          <p class="panel-hint">完成一件，划掉一件</p>
+        </div>
+
+        <form class="todo-form" id="todoForm">
+          <label class="visually-hidden" for="todoInput">添加待办</label>
+          <input
+            class="text-input"
+            id="todoInput"
+            name="todo"
+            type="text"
+            maxlength="120"
+            autocomplete="off"
+            placeholder="输入一件要做的事"
+          >
+          <button class="primary-button" type="submit">添加</button>
+        </form>
+
+        <div class="list-meta">
+          <span id="todoSummary">0 项待完成</span>
+          <button class="danger-button" id="clearCompletedButton" type="button">
+            清除已完成
+          </button>
+        </div>
+
+        <ul class="todo-list" id="todoList" aria-label="待办事项"></ul>
+        <div class="empty-state" id="todoEmpty">还没有待办，先写下一件小事吧。</div>
+      </section>
+
+      <section class="panel timer-panel" aria-labelledby="timerHeading">
+        <div class="panel-heading">
+          <h2 id="timerHeading">番茄钟</h2>
+          <p class="panel-hint">25 分钟专注 / 5 分钟休息</p>
+        </div>
+
+        <div class="mode-switch" role="group" aria-label="选择计时模式">
+          <button
+            class="mode-button"
+            id="focusModeButton"
+            type="button"
+            aria-pressed="true"
+          >
+            专注 25 分钟
+          </button>
+          <button
+            class="mode-button"
+            id="breakModeButton"
+            type="button"
+            aria-pressed="false"
+          >
+            休息 5 分钟
+          </button>
+        </div>
+
+        <div class="timer-ring" id="timerRing">
+          <div class="timer-ring-inner">
+            <span class="timer-time" id="timerTime">25:00</span>
+            <span class="timer-label" id="timerLabel">专注时间</span>
+          </div>
+        </div>
+
+        <div class="timer-actions">
+          <button class="primary-button" id="startPauseButton" type="button">
+            开始
+          </button>
+          <button class="secondary-button" id="resetButton" type="button">
+            重置
+          </button>
+        </div>
+
+        <p class="timer-status" id="timerStatus" aria-live="polite">
+          准备好后就可以开始。
+        </p>
+      </section>
+
+      <section class="panel note-panel" aria-labelledby="noteHeading">
+        <div class="panel-heading">
+          <h2 id="noteHeading">便签</h2>
+          <p class="panel-hint">输入后自动保存</p>
+        </div>
+
+        <label class="visually-hidden" for="noteArea">便签内容</label>
+        <textarea
+          class="note-area"
+          id="noteArea"
+          spellcheck="true"
+          placeholder="写下此刻的想法、灵感，或者下一步计划……"
+        ></textarea>
+
+        <div class="note-meta">
+          <span id="noteStatus">已自动保存</span>
+          <span id="noteCount">0 字</span>
+        </div>
+      </section>
+    </div>
+
+    <footer class="app-footer">所有数据只保存在当前浏览器中，刷新页面不会丢失。</footer>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE_KEYS = {
+        todos: "todayFocus.todos.v1",
+        timer: "todayFocus.timer.v1",
+        note: "todayFocus.note.v1"
+      };
+
+      const FOCUS_SECONDS = 25 * 60;
+      const BREAK_SECONDS = 5 * 60;
+      const NOTE_SAVE_DELAY = 350;
+
+      const elements = {
+        todayDate: document.getElementById("todayDate"),
+        todoForm: document.getElementById("todoForm"),
+        todoInput: document.getElementById("todoInput"),
+        todoList: document.getElementById("todoList"),
+        todoEmpty: document.getElementById("todoEmpty"),
+        todoSummary: document.getElementById("todoSummary"),
+        clearCompletedButton: document.getElementById("clearCompletedButton"),
+        focusModeButton: document.getElementById("focusModeButton"),
+        breakModeButton: document.getElementById("breakModeButton"),
+        timerRing: document.getElementById("timerRing"),
+        timerTime: document.getElementById("timerTime"),
+        timerLabel: document.getElementById("timerLabel"),
+        startPauseButton: document.getElementById("startPauseButton"),
+        resetButton: document.getElementById("resetButton"),
+        timerStatus: document.getElementById("timerStatus"),
+        noteArea: document.getElementById("noteArea"),
+        noteStatus: document.getElementById("noteStatus"),
+        noteCount: document.getElementById("noteCount")
+      };
+
+      const state = {
+        todos: loadTodos(),
+        timer: loadTimerState(),
+        timerIntervalId: null,
+        noteSaveTimeoutId: null,
+        audioContext: null
+      };
+
+      function readStorage(key, fallbackValue) {
+        try {
+          const storedValue = localStorage.getItem(key);
+          return storedValue === null ? fallbackValue : storedValue;
+        } catch (error) {
+          console.warn("无法读取本地数据：", error);
+          return fallbackValue;
+        }
+      }
+
+      function writeStorage(key, value) {
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch (error) {
+          console.warn("无法保存本地数据：", error);
+          return false;
+        }
+      }
+
+      function readJsonStorage(key, fallbackValue) {
+        const rawValue = readStorage(key, null);
+
+        if (rawValue === null) {
+          return fallbackValue;
+        }
+
+        try {
+          return JSON.parse(rawValue);
+        } catch (error) {
+          console.warn("本地数据格式无效，将使用默认值：", error);
+          return fallbackValue;
+        }
+      }
+
+      function loadTodos() {
+        const savedTodos = readJsonStorage(STORAGE_KEYS.todos, []);
+
+        if (!Array.isArray(savedTodos)) {
+          return [];
+        }
+
+        return savedTodos
+          .filter((todo) => todo && typeof todo.text === "string")
+          .map((todo, index) => ({
+            id: typeof todo.id === "string" ? todo.id : createId(index),
+            text: todo.text.slice(0, 120),
+            completed: Boolean(todo.completed),
+            createdAt: Number(todo.createdAt) || Date.now()
+          }));
+      }
+
+      function saveTodos() {
+        writeStorage(STORAGE_KEYS.todos, JSON.stringify(state.todos));
+      }
+
+      function loadTimerState() {
+        const savedTimer = readJsonStorage(STORAGE_KEYS.timer, null);
+        const mode = savedTimer && savedTimer.mode === "break" ? "break" : "focus";
+        const fullDuration = getModeDuration(mode);
+        const savedRemaining =
+          savedTimer && Number.isFinite(Number(savedTimer.remaining))
+            ? Number(savedTimer.remaining)
+            : fullDuration;
+        let remaining = savedRemaining;
+        let running = Boolean(savedTimer && savedTimer.running);
+        let endAt = Number(savedTimer && savedTimer.endAt) || null;
+        let pendingCompletion = false;
+
+        if (!Number.isFinite(remaining) || remaining < 0 || remaining > fullDuration) {
+          remaining = fullDuration;
+        }
+
+        if (running && endAt) {
+          const secondsLeft = Math.ceil((endAt - Date.now()) / 1000);
+
+          if (secondsLeft > 0) {
+            remaining = Math.min(secondsLeft, fullDuration);
+          } else {
+            remaining = 0;
+            running = false;
+            endAt = null;
+            pendingCompletion = true;
+          }
+        } else {
+          running = false;
+          endAt = null;
+        }
+
+        return {
+          mode,
+          remaining,
+          running,
+          endAt,
+          pendingCompletion
+        };
+      }
+
+      function saveTimerState() {
+        writeStorage(
+          STORAGE_KEYS.timer,
+          JSON.stringify({
+            mode: state.timer.mode,
+            remaining: state.timer.remaining,
+            running: state.timer.running,
+            endAt: state.timer.endAt
+          })
+        );
+      }
+
+      function createId(index = 0) {
+        return `${Date.now().toString(36)}-${index}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`;
+      }
+
+      function getModeDuration(mode) {
+        return mode === "break" ? BREAK_SECONDS : FOCUS_SECONDS;
+      }
+
+      function getModeLabel(mode) {
+        return mode === "break" ? "休息时间" : "专注时间";
+      }
+
+      function formatSeconds(totalSeconds) {
+        const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+        const minutes = Math.floor(safeSeconds / 60);
+        const seconds = safeSeconds % 60;
+        return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+          2,
+          "0"
+        )}`;
+      }
+
+      function renderDate() {
+        const formatter = new Intl.DateTimeFormat("zh-CN", {
+          month: "long",
+          day: "numeric",
+          weekday: "long"
+        });
+        elements.todayDate.textContent = formatter.format(new Date());
+      }
+
+      function renderTodos() {
+        elements.todoList.replaceChildren();
+
+        const incompleteCount = state.todos.filter(
+          (todo) => !todo.completed
+        ).length;
+        const completedCount = state.todos.length - incompleteCount;
+
+        elements.todoSummary.textContent = `${incompleteCount} 项待完成`;
+        elements.clearCompletedButton.disabled = completedCount === 0;
+        elements.todoEmpty.hidden = state.todos.length > 0;
+
+        state.todos.forEach((todo) => {
+          const listItem = document.createElement("li");
+          listItem.className = "todo-item";
+
+          if (todo.completed) {
+            listItem.classList.add("is-complete");
+          }
+
+          const label = document.createElement("label");
+          label.className = "todo-label";
+
+          const checkbox = document.createElement("input");
+          checkbox.className = "todo-checkbox";
+          checkbox.type = "checkbox";
+          checkbox.checked = todo.completed;
+          checkbox.setAttribute(
+            "aria-label",
+            todo.completed ? `标记“${todo.text}”为未完成` : `完成“${todo.text}”`
+          );
+          checkbox.addEventListener("change", () => {
+            todo.completed = checkbox.checked;
+            saveTodos();
+            renderTodos();
+          });
+
+          const text = document.createElement("span");
+          text.className = "todo-text";
+          text.textContent = todo.text;
+
+          label.append(checkbox, text);
+
+          const deleteButton = document.createElement("button");
+          deleteButton.className = "delete-button";
+          deleteButton.type = "button";
+          deleteButton.textContent = "删除";
+          deleteButton.setAttribute("aria-label", `删除待办“${todo.text}”`);
+          deleteButton.addEventListener("click", () => {
+            state.todos = state.todos.filter((item) => item.id !== todo.id);
+            saveTodos();
+            renderTodos();
+          });
+
+          listItem.append(label, deleteButton);
+          elements.todoList.append(listItem);
+        });
+      }
+
+      function addTodo() {
+        const text = elements.todoInput.value.trim();
+
+        if (!text) {
+          elements.todoInput.focus();
+          return;
+        }
+
+        state.todos.unshift({
+          id: createId(state.todos.length),
+          text: text.slice(0, 120),
+          completed: false,
+          createdAt: Date.now()
+        });
+
+        elements.todoInput.value = "";
+        saveTodos();
+        renderTodos();
+        elements.todoInput.focus();
+      }
+
+      function clearCompletedTodos() {
+        state.todos = state.todos.filter((todo) => !todo.completed);
+        saveTodos();
+        renderTodos();
+      }
+
+      function getTimerRemainingSeconds() {
+        if (!state.timer.running || !state.timer.endAt) {
+          return state.timer.remaining;
+        }
+
+        return Math.max(
+          0,
+          Math.ceil((state.timer.endAt - Date.now()) / 1000)
+        );
+      }
+
+      function renderTimer() {
+        const duration = getModeDuration(state.timer.mode);
+        const remaining = getTimerRemainingSeconds();
+        const progress = Math.min(1, Math.max(0, 1 - remaining / duration));
+        const progressAngle = progress * 360;
+
+        state.timer.remaining = remaining;
+        elements.timerTime.textContent = formatSeconds(remaining);
+        elements.timerLabel.textContent = getModeLabel(state.timer.mode);
+        elements.timerRing.style.setProperty(
+          "--progress-angle",
+          `${progressAngle}deg`
+        );
+        elements.startPauseButton.textContent = state.timer.running
+          ? "暂停"
+          : "开始";
+        elements.focusModeButton.setAttribute(
+          "aria-pressed",
+          String(state.timer.mode === "focus")
+        );
+        elements.breakModeButton.setAttribute(
+          "aria-pressed",
+          String(state.timer.mode === "break")
+        );
+      }
+
+      function stopTimerLoop() {
+        if (state.timerIntervalId !== null) {
+          window.clearInterval(state.timerIntervalId);
+          state.timerIntervalId = null;
+        }
+      }
+
+      function startTimerLoop() {
+        stopTimerLoop();
+        state.timerIntervalId = window.setInterval(tickTimer, 250);
+      }
+
+      function tickTimer() {
+        if (!state.timer.running) {
+          return;
+        }
+
+        const remaining = getTimerRemainingSeconds();
+
+        if (remaining > 0) {
+          state.timer.remaining = remaining;
+          renderTimer();
+          return;
+        }
+
+        completeTimerSession();
+      }
+
+      function startTimer() {
+        ensureAudioContext();
+
+        if (state.timer.remaining <= 0) {
+          state.timer.remaining = getModeDuration(state.timer.mode);
+        }
+
+        state.timer.running = true;
+        state.timer.endAt = Date.now() + state.timer.remaining * 1000;
+        elements.timerStatus.textContent =
+          state.timer.mode === "focus"
+            ? "专注进行中，保持当前节奏。"
+            : "休息进行中，让大脑放松一下。";
+
+        saveTimerState();
+        renderTimer();
+        startTimerLoop();
+      }
+
+      function pauseTimer() {
+        state.timer.remaining = getTimerRemainingSeconds();
+        state.timer.running = false;
+        state.timer.endAt = null;
+        elements.timerStatus.textContent = "计时已暂停。";
+        saveTimerState();
+        renderTimer();
+        stopTimerLoop();
+      }
+
+      function resetTimer() {
+        state.timer.running = false;
+        state.timer.endAt = null;
+        state.timer.remaining = getModeDuration(state.timer.mode);
+        elements.timerStatus.textContent = "计时已重置，准备开始。";
+        saveTimerState();
+        renderTimer();
+        stopTimerLoop();
+      }
+
+      function switchTimerMode(mode) {
+        if (mode !== "focus" && mode !== "break") {
+          return;
+        }
+
+        state.timer.mode = mode;
+        state.timer.running = false;
+        state.timer.endAt = null;
+        state.timer.remaining = getModeDuration(mode);
+        elements.timerStatus.textContent =
+          mode === "focus" ? "已切换到专注模式。" : "已切换到休息模式。";
+
+        saveTimerState();
+        renderTimer();
+        stopTimerLoop();
+      }
+
+      function completeTimerSession() {
+        const completedMode = state.timer.mode;
+        const nextMode = completedMode === "focus" ? "break" : "focus";
+
+        state.timer.running = false;
+        state.timer.endAt = null;
+        state.timer.remaining = 0;
+        saveTimerState();
+        renderTimer();
+        playAlertSound();
+
+        state.timer.mode = nextMode;
+        state.timer.remaining = getModeDuration(nextMode);
+        elements.timerStatus.textContent =
+          completedMode === "focus"
+            ? "专注结束，已切换到 5 分钟休息。"
+            : "休息结束，已切换到 25 分钟专注。";
+
+        saveTimerState();
+        renderTimer();
+        stopTimerLoop();
+      }
+
+      function ensureAudioContext() {
+        const AudioContextClass =
+          window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+          return null;
+        }
+
+        if (!state.audioContext) {
+          state.audioContext = new AudioContextClass();
+        }
+
+        if (state.audioContext.state === "suspended") {
+          state.audioContext.resume().catch(() => {});
+        }
+
+        return state.audioContext;
+      }
+
+      function playAlertSound() {
+        const audioContext = ensureAudioContext();
+
+        if (audioContext) {
+          audioContext
+            .resume()
+            .then(() => {
+              const startTime = audioContext.currentTime;
+              const notes = [
+                { frequency: 880, start: 0, duration: 0.13 },
+                { frequency: 660, start: 0.18, duration: 0.13 },
+                { frequency: 880, start: 0.36, duration: 0.18 }
+              ];
+
+              notes.forEach((note) => {
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const noteStart = startTime + note.start;
+                const noteEnd = noteStart + note.duration;
+
+                oscillator.type = "sine";
+                oscillator.frequency.value = note.frequency;
+                gain.gain.setValueAtTime(0.0001, noteStart);
+                gain.gain.exponentialRampToValueAtTime(0.22, noteStart + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, noteEnd);
+
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+                oscillator.start(noteStart);
+                oscillator.stop(noteEnd);
+              });
+            })
+            .catch(() => {});
+        }
+
+        if (typeof navigator.vibrate === "function") {
+          navigator.vibrate([180, 100, 180]);
+        }
+      }
+
+      function updateNoteCount() {
+        const characterCount = Array.from(elements.noteArea.value).length;
+        elements.noteCount.textContent = `${characterCount} 字`;
+      }
+
+      function saveNote() {
+        const saved = writeStorage(STORAGE_KEYS.note, elements.noteArea.value);
+        elements.noteStatus.textContent = saved ? "已自动保存" : "保存失败";
+      }
+
+      function handleNoteInput() {
+        updateNoteCount();
+        elements.noteStatus.textContent = "正在保存…";
+
+        if (state.noteSaveTimeoutId !== null) {
+          window.clearTimeout(state.noteSaveTimeoutId);
+        }
+
+        state.noteSaveTimeoutId = window.setTimeout(saveNote, NOTE_SAVE_DELAY);
+      }
+
+      function initializeNote() {
+        elements.noteArea.value = readStorage(STORAGE_KEYS.note, "");
+        updateNoteCount();
+        elements.noteStatus.textContent = "已自动保存";
+      }
+
+      function bindEvents() {
+        elements.todoForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          addTodo();
+        });
+
+        elements.clearCompletedButton.addEventListener(
+          "click",
+          clearCompletedTodos
+        );
+
+        elements.startPauseButton.addEventListener("click", () => {
+          if (state.timer.running) {
+            pauseTimer();
+          } else {
+            startTimer();
+          }
+        });
+
+        elements.resetButton.addEventListener("click", resetTimer);
+
+        elements.focusModeButton.addEventListener("click", () => {
+          switchTimerMode("focus");
+        });
+
+        elements.breakModeButton.addEventListener("click", () => {
+          switchTimerMode("break");
+        });
+
+        elements.noteArea.addEventListener("input", handleNoteInput);
+
+        window.addEventListener("beforeunload", () => {
+          if (state.noteSaveTimeoutId !== null) {
+            window.clearTimeout(state.noteSaveTimeoutId);
+          }
+          saveNote();
+          saveTimerState();
+        });
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            if (state.noteSaveTimeoutId !== null) {
+              window.clearTimeout(state.noteSaveTimeoutId);
+            }
+            saveNote();
+            saveTimerState();
+          } else if (state.timer.running) {
+            tickTimer();
+          }
+        });
+      }
+
+      function initialize() {
+        renderDate();
+        renderTodos();
+        initializeNote();
+        renderTimer();
+        bindEvents();
+
+        if (state.timer.pendingCompletion) {
+          state.timer.pendingCompletion = false;
+          elements.timerStatus.textContent =
+            "上次计时已经结束，点击开始即可继续下一轮。";
+        } else if (state.timer.running) {
+          elements.timerStatus.textContent = "计时正在继续。";
+          startTimerLoop();
+        } else {
+          elements.timerStatus.textContent = "准备好后就可以开始。";
+        }
+      }
+
+      if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+        });
+      }
+
+      initialize();
+    })();
+  </script>
+</body>
+</html>
