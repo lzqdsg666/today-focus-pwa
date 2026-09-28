@@ -1,4 +1,4 @@
-const CACHE_NAME = "today-focus-v2";
+const CACHE_NAME = "today-focus-v0.0.1";
 
 const APP_SHELL = [
   "./",
