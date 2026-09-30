@@ -1,7 +1,7 @@
 {
   "name": "今日专注",
   "short_name": "今日专注",
-  "description": "待办清单、番茄钟和便签，本地离线保存。",
+  "description": "待办、番茄钟、便签、背单词与游戏，本地离线保存。",
   "lang": "zh-CN",
   "start_url": "./index.html",
   "scope": "./",

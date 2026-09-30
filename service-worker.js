@@ -1,4 +1,4 @@
-const CACHE_NAME = "today-focus-v0.0.1";
+const CACHE_NAME = "today-focus-v0.1.0";
 
 const APP_SHELL = [
   "./",
@@ -6,7 +6,8 @@ const APP_SHELL = [
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./icons/apple-touch-icon.png"
+  "./icons/apple-touch-icon.png",
+  "./VID_20260930_142804.m4a"
 ];
 
 self.addEventListener("install", (event) => {
